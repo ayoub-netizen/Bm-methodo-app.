@@ -2,6 +2,8 @@ import streamlit as st
 from PIL import Image
 from io import BytesIO
 import base64
+import json
+import streamlit.components.v1 as components
 
 
 def run_annotator(uploaded_file, key="annotator_canvas"):
@@ -17,34 +19,54 @@ def run_annotator(uploaded_file, key="annotator_canvas"):
     img.save(buffer, format="PNG")
     img_b64 = base64.b64encode(buffer.getvalue()).decode()
 
-    # Canvas HTML + Fabric.js
-    st.markdown(
-        f"""
-        <canvas id="c" width="{img.width}" height="{img.height}" 
-                style="border:1px solid #ccc"></canvas>
+    # Largeur/hauteur
+    w, h = img.size
+
+    # HTML + Fabric.js + communication Streamlit
+    html_code = f"""
+    <html>
+    <head>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.2.4/fabric.min.js"></script>
+    </head>
+    <body>
+        <canvas id="c" width="{w}" height="{h}" style="border:1px solid #ccc"></canvas>
 
         <script>
-        const canvas = new fabric.Canvas('c');
-        fabric.Image.fromURL("data:image/png;base64,{img_b64}", function(img) {{
-            canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
-        }});
+            const canvas = new fabric.Canvas('c');
 
-        canvas.isDrawingMode = true;
-        canvas.freeDrawingBrush.width = 3;
-        canvas.freeDrawingBrush.color = "red";
+            fabric.Image.fromURL("data:image/png;base64,{img_b64}", function(img) {{
+                canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
+            }});
 
-        function exportCanvas() {{
-            const json = canvas.toJSON();
-            const py = window.parent.streamlitPython;
-            py.sendJson(json);
-        }}
+            canvas.isDrawingMode = true;
+            canvas.freeDrawingBrush.width = 3;
+            canvas.freeDrawingBrush.color = "red";
 
-        setInterval(exportCanvas, 1000);
+            function sendData() {{
+                const json = JSON.stringify(canvas.toJSON());
+                window.parent.postMessage({{type: "canvas_json", data: json}}, "*");
+            }}
+
+            setInterval(sendData, 800);
         </script>
-        """,
-        unsafe_allow_html=True,
-    )
+    </body>
+    </html>
+    """
 
-    # Récupération JSON envoyée par JS
-    annotations = st.session_state.get("canvas_json", None)
-    return type("CanvasResult", (), {"json_data": annotations})
+    # Composant Streamlit
+    components.html(html_code, height=h + 20)
+
+    # Récupération des données envoyées par JS
+    msg = st.experimental_get_query_params().get("canvas_json", None)
+
+    # On stocke dans session_state
+    if "canvas_json" not in st.session_state:
+        st.session_state["canvas_json"] = None
+
+    def _listener():
+        import streamlit as st
+        st.session_state["canvas_json"] = st.experimental_get_query_params().get("canvas_json", None)
+
+    st.experimental_on_url_change(_listener)
+
+    return type("CanvasResult", (), {"json_data": st.session_state["canvas_json"]})
