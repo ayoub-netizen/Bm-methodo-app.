@@ -19,12 +19,13 @@ def run_annotator(bg_image):
         fill_color="rgba(255, 165, 0, 0.3)",
         stroke_width=3,
         stroke_color="#FF0000",
-        background_image=bg_image,
+        background_image=bg_image, # Vérifie que bg_image est bien un objet PIL
         update_streamlit=True,
         height=display_height,
         width=display_width,
         drawing_mode=drawing_mode,
         key="canvas",
+        display_toolbar=True, # Ajoute ça pour être sûr
     )
 
     annotations = []
