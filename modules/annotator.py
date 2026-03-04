@@ -1,43 +1,50 @@
+from io import BytesIO
+from typing import Optional
+
 import streamlit as st
-import google.generativeai as genai
+from PIL import Image
+from streamlit_drawable_canvas import st_canvas
 
 
-MODEL_NAME = "gemini-1.5-pro"
-
-
-def _configure():
-    api_key = st.secrets.get("GEMINI_API_KEY")
-    if not api_key:
-        raise RuntimeError("GEMINI_API_KEY manquante dans les secrets Streamlit.")
-    genai.configure(api_key=api_key)
-
-
-def analyze_methodology(methodology_text, site_context, annotations):
-    _configure()
-    model = genai.GenerativeModel(MODEL_NAME)
-
-    prompt = f"""
-Tu es ingénieur travaux en tuyauterie industrielle.
-
-Contexte du chantier :
-{site_context}
-
-Méthodologie :
-{methodology_text}
-
-Annotations du plan (JSON) :
-{annotations}
-
-Analyse la cohérence, signale les incohérences, propose des améliorations.
-Structure la réponse en sections claires.
-"""
+def _load_image(uploaded_file) -> Optional[Image.Image]:
+    if uploaded_file is None:
+        return None
 
     try:
-        response = model.generate_content(prompt)
+        data = uploaded_file.read()
+        img = Image.open(BytesIO(data))
+        if img.mode not in ("RGB", "RGBA"):
+            img = img.convert("RGB")
+        return img
     except Exception as e:
-        raise RuntimeError(f"Erreur Gemini : {e}")
+        st.error(f"Erreur chargement image : {e}")
+        return None
 
-    if hasattr(response, "text"):
-        return response.text
 
-    return "Réponse reçue mais illisible."
+def run_annotator(uploaded_file, key="annotator_canvas"):
+    st.subheader("Annotation du plan")
+
+    img = _load_image(uploaded_file)
+
+    if img is None:
+        st.info("Importe un plan pour commencer.")
+        return None
+
+    canvas_width = min(1200, img.width)
+    ratio = img.height / img.width
+    canvas_height = int(canvas_width * ratio)
+
+    canvas_result = st_canvas(
+        fill_color="rgba(255, 0, 0, 0.3)",
+        stroke_width=2,
+        stroke_color="#ff0000",
+        background_color=None,
+        background_image=img,
+        update_streamlit=True,
+        height=canvas_height,
+        width=canvas_width,
+        drawing_mode="freedraw",
+        key=key,
+    )
+
+    return canvas_result
