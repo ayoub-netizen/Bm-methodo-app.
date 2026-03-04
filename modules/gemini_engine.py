@@ -3,7 +3,8 @@ import json
 
 def analyze_methodology(api_key, annotations, text_methodo):
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    # On force l'utilisation de 1.5-flash qui est disponible partout
+    model = genai.GenerativeModel('gemini-1.5-flash') 
     
     prompt = f"""
     En tant qu'expert en ingénierie BTP, analyse la cohérence entre les annotations JSON et la méthodologie rédigée.
