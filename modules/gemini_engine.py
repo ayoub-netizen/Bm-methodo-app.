@@ -1,7 +1,7 @@
 import streamlit as st
 import google.generativeai as genai
 
-# 🔥 Choix du modèle (fonctionne avec l’API v1)
+# 🔥 Modèle compatible API v1 (celui qui fonctionne)
 MODEL_NAME = "gemini-1.5-pro"   # ou "gemini-1.5-flash" si tu veux plus rapide
 
 
