@@ -1,17 +1,11 @@
-# Core
 streamlit==1.41.1
+streamlit-drawable-canvas==0.9.3
 
-# Canvas (fork corrigé pour les nouvelles versions de Streamlit)
-streamlit-drawable-canvas-fix==0.9.7
-
-# Image & numérique
 pillow==11.0.0
 numpy==2.1.3
 
-# Google Gemini (API grand public, pas Vertex)
 google-generativeai==0.8.3
 google-api-core>=2.19.0
 protobuf<5
 
-# Divers utiles
 python-dotenv==1.0.1
