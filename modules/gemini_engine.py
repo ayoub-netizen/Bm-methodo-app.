@@ -1,15 +1,19 @@
 import streamlit as st
 import google.generativeai as genai
 
-# 🔥 Modèle compatible API v1 (celui qui fonctionne)
-MODEL_NAME = "gemini-1.5-pro"   # ou "gemini-1.5-flash" si tu veux plus rapide
-
+# 🔥 Modèle compatible API v1
+MODEL_NAME = "models/gemini-1.5-pro"   # IMPORTANT : ajouter "models/"
 
 def _configure():
     api_key = st.secrets.get("GEMINI_API_KEY")
     if not api_key:
         raise RuntimeError("GEMINI_API_KEY manquante dans les secrets Streamlit.")
-    genai.configure(api_key=api_key)
+
+    genai.configure(
+        api_key=api_key,
+        # 🔥 On force l’API v1
+        api_version="v1"
+    )
 
 
 def analyze_methodology(methodology_text, site_context, annotations):
