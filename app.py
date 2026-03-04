@@ -1,17 +1,11 @@
 import streamlit as st
-
 from modules.annotator import run_annotator
 from modules.gemini_engine import analyze_methodology
 
-
-# ---------------------------------------------------------
-# CONFIG STREAMLIT
-# ---------------------------------------------------------
 st.set_page_config(
     page_title="Annotateur & Analyse IA",
     layout="wide",
 )
-
 
 # ---------------------------------------------------------
 # SIDEBAR — UPLOAD & PARAMÈTRES
@@ -33,7 +27,6 @@ site_context = st.sidebar.text_area(
     height=150,
 )
 
-
 # ---------------------------------------------------------
 # PAGE PRINCIPALE — ANNOTATION
 # ---------------------------------------------------------
@@ -48,7 +41,6 @@ st.markdown(
 )
 
 canvas_result = run_annotator(uploaded_file)
-
 
 # ---------------------------------------------------------
 # ANALYSE IA
@@ -66,6 +58,7 @@ if st.button("Lancer l’analyse IA"):
         st.error("La méthodologie est vide.")
     else:
         with st.spinner("Analyse en cours avec Gemini 1.5…"):
+
             annotations = canvas_result.json_data
 
             try:
