@@ -1,54 +1,75 @@
+# modules/annotator.py
+
+from io import BytesIO
+from typing import Optional
+
 import streamlit as st
-from streamlit_drawable_canvas import st_canvas
 from PIL import Image
+from streamlit_drawable_canvas_fix import st_canvas  # si tu utilises le fork
+# Si tu restes sur le package original :
+# from streamlit_drawable_canvas import st_canvas
 
-def run_annotator(bg_image):
-    st.subheader("🛠️ Module 2 : Annotation Technique")
-    
-    # Configuration des outils dans la barre latérale
-    drawing_mode = st.sidebar.selectbox("Outil:", ("rect", "line", "point"), key="tool")
-    
-    # Redimensionnement propre pour l'affichage
-    w, h = bg_image.size
-    display_width = 700
-    ratio = display_width / w
-    display_height = int(h * ratio)
 
-    # LE CANVAS (C'est ici que l'erreur se produit d'habitude)
+def _load_image_from_upload(uploaded_file) -> Optional[Image.Image]:
+    """
+    Charge l'image uploadée en mémoire (PIL.Image) pour éviter tout accès par URL
+    et donc toute contrainte CORS côté navigateur/Fabric.js.
+    """
+    if uploaded_file is None:
+        return None
+
+    try:
+        bytes_data = uploaded_file.read()
+        img = Image.open(BytesIO(bytes_data))
+        # On force un mode standard pour éviter certains soucis d'affichage
+        if img.mode not in ("RGB", "RGBA"):
+            img = img.convert("RGB")
+        return img
+    except Exception as e:
+        st.error(f"Erreur lors du chargement de l'image : {e}")
+        return None
+
+
+def run_annotator(uploaded_file, key: str = "annotator_canvas"):
+    """
+    Affiche un canvas annotable avec l'image uploadée en fond.
+    Retourne l'objet canvas (données de dessin + image).
+    """
+    st.subheader("Annotation du plan")
+
+    img = _load_image_from_upload(uploaded_file)
+
+    if img is None:
+        st.info("Uploade un plan (PNG/JPEG) pour commencer l’annotation.")
+        return None
+
+    # Affichage de contrôle (debug visuel)
+    with st.expander("Aperçu brut de l'image de fond"):
+        st.image(img, caption="Image de fond utilisée pour le canvas", use_container_width=True)
+
+    # Paramètres du canvas
+    canvas_width = min(1200, img.width)
+    # On garde le ratio de l'image
+    ratio = img.height / img.width
+    canvas_height = int(canvas_width * ratio)
+
+    st.write("Tu peux dessiner directement sur le plan ci-dessous :")
+
     canvas_result = st_canvas(
-        fill_color="rgba(255, 165, 0, 0.3)",
-        stroke_width=3,
-        stroke_color="#FF0000",
-        background_image=bg_image, # Vérifie que bg_image est bien un objet PIL
+        fill_color="rgba(255, 0, 0, 0.3)",
+        stroke_width=2,
+        stroke_color="#ff0000",
+        background_color=None,          # important : pas de couleur qui masque l'image
+        background_image=img,           # image en mémoire → pas de CORS
         update_streamlit=True,
-        height=display_height,
-        width=display_width,
-        drawing_mode=drawing_mode,
-        key="canvas",
-        display_toolbar=True, # Ajoute ça pour être sûr
+        height=canvas_height,
+        width=canvas_width,
+        drawing_mode="freedraw",
+        point_display_radius=0,
+        key=key,
     )
 
-    annotations = []
-    if canvas_result.json_data is not None:
-        objects = canvas_result.json_data["objects"]
-        for idx, obj in enumerate(objects):
-            st.markdown(f"---")
-            col1, col2 = st.columns(2)
-            with col1:
-                obj_id = st.text_input(f"ID Zone {idx+1}", key=f"id_{idx}", placeholder="Ex: Z_GRUE").upper()
-            with col2:
-                comment = st.text_input(f"Description", key=f"com_{idx}", placeholder="Action à réaliser")
-            
-            annotations.append({
-                "id": obj_id,
-                "type": obj["type"],
-                "coordinates": {
-                    "x": int(obj["left"] / ratio),
-                    "y": int(obj["top"] / ratio),
-                    "width": int(obj.get("width", 0) / ratio),
-                    "height": int(obj.get("height", 0) / ratio)
-                },
-                "comment": comment
-            })
-    
-    return annotations
+    # canvas_result contient :
+    # - image_data (numpy array)
+    # - json_data (objets dessinés)
+    return canvas_result
