@@ -1,16 +1,13 @@
 import streamlit as st
 import google.generativeai as genai
 
-
-MODEL_NAME = "gemini-1.5-pro"
-
+MODEL_NAME = "gemini-1.5-pro-latest"
 
 def _configure():
     api_key = st.secrets.get("GEMINI_API_KEY")
     if not api_key:
         raise RuntimeError("GEMINI_API_KEY manquante dans les secrets Streamlit.")
     genai.configure(api_key=api_key)
-
 
 def analyze_methodology(methodology_text, site_context, annotations):
     _configure()
